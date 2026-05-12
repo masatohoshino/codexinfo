@@ -1,0 +1,77 @@
+{
+  "id": "codexinfo",
+  "name": "CodexInfo",
+  "description": "Codex CLI completion, approval-wait, and rate-limit notifications for OpenClaw channels.",
+  "activation": { "onStartup": true },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "token": {
+        "type": "string",
+        "minLength": 16,
+        "description": "Bearer token for hook authentication (min 16 chars). Generated during setup."
+      },
+      "deliveries": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "channel": { "type": "string", "minLength": 1 },
+            "to": { "type": "string", "minLength": 1 }
+          },
+          "required": ["channel", "to"]
+        },
+        "description": "List of delivery targets. Each entry has a channel id and recipient address."
+      },
+      "routing": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": ["broadcast", "channels"],
+            "description": "broadcast = all deliveries, channels = targetChannels only"
+          },
+          "targetChannels": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Channel ids when mode=channels"
+          }
+        },
+        "required": ["mode"]
+      },
+      "journal": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": { "type": "boolean", "description": "Enable journal (default: true)" },
+          "retentionDays": { "type": "integer", "minimum": 1, "description": "Days to keep journal files (default: 7)" }
+        }
+      },
+      "diagnostics": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": { "type": "boolean", "description": "Enable diagnostics JSONL (default: false)" },
+          "logDir": { "type": "string", "description": "Custom diagnostics directory" },
+          "retentionDays": { "type": "integer", "minimum": 1 },
+          "rawCapture": { "type": "boolean", "description": "Log raw payload keys (no values). Emits warning at startup." }
+        }
+      },
+      "display": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "weeklyResetFormat": {
+            "type": "string",
+            "enum": ["date", "weekday-time"],
+            "description": "date = '12 May', weekday-time = 'Tue 09:00'"
+          }
+        }
+      }
+    }
+  }
+}
