@@ -7,11 +7,7 @@ import { createHookHandler, createDeliverTextHandler } from "./http.js";
 import { deliverText } from "./deliver.js";
 import { writeJournalEntry } from "./journal.js";
 import { renderNotificationText } from "./render.js";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import type { CodexInfoEvent } from "./types.js";
-
-const DEFAULT_JOURNAL_DIR = join(homedir(), ".openclaw", "codexinfo-journal");
 
 export default definePluginEntry({
   id: "codexinfo",
@@ -35,7 +31,7 @@ export default definePluginEntry({
         const renderedText = renderNotificationText(event, config);
 
         if (config.journal.enabled) {
-          writeJournalEntry(event, DEFAULT_JOURNAL_DIR, renderedText);
+          writeJournalEntry(event, undefined, renderedText);
         }
 
         const result = await deliverNotification({

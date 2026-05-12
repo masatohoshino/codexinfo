@@ -24,9 +24,10 @@ function runHook(
 
 describe("CODEXINFO_HOOK_CONFIG_PATH env var", () => {
   it("exits 0 silently when path points to non-existent file", () => {
+    const missingPath = join(tmpdir(), `does-not-exist-${Date.now()}-codexinfo-hook-config.json`);
     const { exitCode, stderr } = runHook(
       { type: "agent-turn-complete", session_id: "test", turn_id: "t1", cwd: "/tmp" },
-      { CODEXINFO_HOOK_CONFIG_PATH: "/tmp/does-not-exist-codexinfo-hook-config.json" },
+      { CODEXINFO_HOOK_CONFIG_PATH: missingPath },
     );
     expect(exitCode).toBe(0);
     expect(stderr).toBe("");
