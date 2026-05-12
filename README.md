@@ -121,6 +121,22 @@ codexinfo setup
 
 When installing manually, the `codexinfo` binary is available directly (no `openclaw` prefix). The OpenClaw plugin still needs to be registered separately via `openclaw plugins install`.
 
+## Install from tarball (pre-release)
+
+If you have received a pre-release `.tgz` file directly:
+
+```sh
+# Install the CLI globally
+npm install -g ./codexinfo-0.1.10.tgz
+codexinfo setup
+
+# Also register the OpenClaw plugin from the same tarball
+openclaw plugins install --dangerously-force-unsafe-install ./codexinfo-0.1.10.tgz
+openclaw gateway restart
+```
+
+Replace `0.1.10` with the version in your filename. This install path is for pre-ClawHub testing only; use `openclaw plugins install codexinfo` once the package is published.
+
 ---
 
 ## Channel routing
@@ -179,7 +195,7 @@ Two windows are typically shown:
 
 The bar width reflects remaining capacity. When a window hits 0%, a separate **rate-limit reached** notification is sent.
 
-If the probe fails (Codex not running, not logged in), the notification is sent without bars.
+If the probe fails (Codex not running, not logged in), the notification is still sent but shows `rate-limit: unavailable` instead of bars. See [Notification shows `rate-limit: unavailable`](#notification-shows-rate-limit-unavailable) in Troubleshooting.
 
 **Weekly reset display** can be configured:
 
@@ -230,7 +246,7 @@ No NLP or LLM processing is performed — only the fields Codex provides are use
 **Smoke test prompt** (once `/hooks` Trust is granted):
 
 ```
-次のネットワーク確認コマンドを1回だけ実行してください。承認が必要になったら申請してください。
+Run this command once and request approval when Codex asks:
 curl -I https://example.com
 ```
 
@@ -278,6 +294,11 @@ Read-only health check. Verifies:
 - plugin config exists with token and deliveries
 - Rate-limit probe reachable
 
+```
+Options:
+  --notify  Send the status notification to configured delivery channels
+```
+
 ### `codexinfo status`
 
 Print current configuration summary: routing, deliveries, journal/diagnostics settings, installed version.
@@ -320,7 +341,16 @@ If you see this, a `[[hooks.PermissionRequest]]` hook is installed (from `--appr
 
 ### Doctor shows "rate-limit probe failed"
 
-The Codex app-server is not reachable. Ensure Codex is running and you are logged in. The probe contacts `localhost` only — no external network required. Notifications will still be delivered; they just won't include rate-limit bars.
+The Codex app-server is not reachable. Ensure Codex is running and you are logged in. The probe contacts `localhost` only — no external network required. Notifications will still be delivered but will show `rate-limit: unavailable` instead of bars.
+
+### Notification shows `rate-limit: unavailable`
+
+`rate-limit: unavailable` appears in completion and approval-wait notifications when the Codex app-server probe fails. Common causes:
+- Codex is not currently running (no active session when the hook fires)
+- Running Codex over SSH or inside Docker where the app-server is not accessible on localhost
+- The probe timed out
+
+The notification is still delivered. To see rate-limit bars, ensure Codex is running locally with a valid session. You can confirm probe reachability with `openclaw codexinfo doctor`.
 
 ### Notifications not arriving
 

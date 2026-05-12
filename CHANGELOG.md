@@ -2,13 +2,21 @@
 
 All notable changes to CodexInfo are documented here.
 
-## [0.1.10] — 2026-05-12
+## [0.1.10] — 2026-05-13
+
+### Added
+
+- **`CODEXINFO_HOOK_CONFIG_PATH` env var** — Overrides the default hook-config path (`~/.openclaw/codexinfo/hook-config.json`). Setting this to an empty string is treated as unset. Useful for testing with an isolated gateway without modifying the production config.
 
 ### Fixed
 
 - **VS Code approval-wait double notification** — When VS Code fires both the `[[hooks.PermissionRequest]]` structured hook and a Path D rollout-reclassification `notify` event for the same approval, both previously passed through separate dedupe namespaces (`perm:…` and `codexinfo:v1:rollout-approval:…`) and produced two Telegram messages (one with a specific reason, one with the generic "Codex requires approval."). The PermissionRequest path now writes a shared `codexinfo:v1:approval-cwd-window:<sha256(cwd)>` flag (30-second TTL) after deciding to send. Path D checks this flag before firing; if the PermissionRequest hook already claimed the slot within 30 seconds, Path D exits silently. Result: 1 approval event → 1 notification (specific reason wins).
 
 - **`doctor` rate-limit probe label** — The check label was "rate-limit probe succeeded" which displayed confusingly as `❌ rate-limit probe succeeded` when the probe failed (e.g. no Codex session running). Renamed to "rate-limit probe reachable" which reads correctly in both the passing (`✅`) and failing (`❌`) states.
+
+- **Rate-limit unavailable fallback** — When the Codex app-server probe fails (no active session, SSH/Docker environment, or timeout), completion and approval-wait notifications now append `rate-limit: unavailable` instead of showing only the event title. This makes it clear that rate-limit data is unavailable rather than appearing as a truncated notification.
+
+- **Journal `id` and `text` fields** — Journal JSONL entries now include `id` (8-character event identifier) and `text` (the rendered notification text), making it easier to correlate journal entries with delivered messages without re-rendering.
 
 ## [0.1.9] — 2026-05-12
 
@@ -20,16 +28,6 @@ All notable changes to CodexInfo are documented here.
 
 - **Approval-wait Trust instructions made reproducible** — The pending-action instructions now specify: (1) Open Codex, (2) Run `/hooks`, (3) Select "PermissionRequest", (4) Press `t` to trust, (5) Confirm "Trust Trusted" is shown. Previously the instructions said only "Trust CodexInfo PermissionRequest hook" without specifying the key binding.
 
-## [0.1.7] — 2026-05-11
-
-### Added
-
-- **VS Code no-Trust approval-wait (Path D)** — VS Code fires the `notify` path when it issues a `function_call` approval request. CodexInfo now reads the session rollout JSONL in `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` (latest 5 files, cwd-matched, tail 4096 bytes) and reclassifies the event from `completion` to `approval-wait` when a `function_call` entry is present with no subsequent `task_complete`. This provides approval-wait notifications for VS Code users without requiring `[[hooks.PermissionRequest]]` Trust. Tool name is extracted from the rollout's `function_call.payload.name` field. Only applies when `_client` is non-empty (VS Code); CLI payloads are unaffected.
-
-- **Guided status notifications** — `codexinfo setup` now sends a status notification after completing setup, showing the current readiness for completion, rate-limit, and approval-wait notifications. `codexinfo status --notify` and `codexinfo doctor --notify` send the same notification on demand. The notification includes Trust setup instructions when approval-wait is in `pending_action` state.
-
-- **`deliver-text` HTTP endpoint** — `POST /plugins/codexinfo/deliver-text` accepts `{"text": "..."}` with bearer auth and delivers the text through configured channels. Used by `status --notify` and `doctor --notify`.
-
 ## [0.1.8] — 2026-05-11
 
 ### Fixed
@@ -39,6 +37,16 @@ All notable changes to CodexInfo are documented here.
 - **Status notification title corrects for non-setup contexts** — `renderStatusNotification` previously showed "🦞 CodexInfo ready" even when there were pending actions and the context was `doctor` or `status`. It now returns "🦞 CodexInfo status" when there are pending actions in a non-setup context, and "🦞 CodexInfo setup" only when the context is `setup`.
 
 - **`deliver-text` input validation** — Added explicit empty-body check (400 "body.text is empty") and 8192-character limit (400 "body.text exceeds 8192 character limit") to the `deliver-text` HTTP handler, in addition to the existing type check.
+
+## [0.1.7] — 2026-05-11
+
+### Added
+
+- **VS Code no-Trust approval-wait (Path D)** — VS Code fires the `notify` path when it issues a `function_call` approval request. CodexInfo now reads the session rollout JSONL in `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` (latest 5 files, cwd-matched, tail 4096 bytes) and reclassifies the event from `completion` to `approval-wait` when a `function_call` entry is present with no subsequent `task_complete`. This provides approval-wait notifications for VS Code users without requiring `[[hooks.PermissionRequest]]` Trust. Tool name is extracted from the rollout's `function_call.payload.name` field. Only applies when `_client` is non-empty (VS Code); CLI payloads are unaffected.
+
+- **Guided status notifications** — `codexinfo setup` now sends a status notification after completing setup, showing the current readiness for completion, rate-limit, and approval-wait notifications. `codexinfo status --notify` and `codexinfo doctor --notify` send the same notification on demand. The notification includes Trust setup instructions when approval-wait is in `pending_action` state.
+
+- **`deliver-text` HTTP endpoint** — `POST /plugins/codexinfo/deliver-text` accepts `{"text": "..."}` with bearer auth and delivers the text through configured channels. Used by `status --notify` and `doctor --notify`.
 
 ## [0.1.6] — 2026-05-10
 
