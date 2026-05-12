@@ -1,0 +1,67 @@
+{
+  "name": "codexinfo",
+  "version": "0.1.10",
+  "type": "module",
+  "description": "Codex CLI notifications for OpenClaw \u2014 completion, approval-wait, and rate-limit with mandatory rate-limit context.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/masatohoshino/codexinfo"
+  },
+  "keywords": [
+    "openclaw",
+    "codex",
+    "notification",
+    "plugin",
+    "rate-limit"
+  ],
+  "bin": {
+    "codexinfo": "./bin/codexinfo.js",
+    "codexinfo-hook": "./bin/codexinfo-hook.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "openclaw": {
+    "extensions": [
+      "./src/index.ts"
+    ],
+    "runtimeExtensions": [
+      "./dist/index.js"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.3.24-beta.2",
+      "minGatewayVersion": "2026.3.24-beta.2"
+    },
+    "build": {
+      "openclawVersion": "2026.5.7",
+      "pluginSdkVersion": "2026.5.7"
+    },
+    "install": {
+      "clawhubSpec": "codexinfo",
+      "npmSpec": "codexinfo",
+      "minHostVersion": ">=2026.5.1"
+    }
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "tsc --project tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "prepack": "npm run build",
+    "pack:dry": "npm pack --dry-run"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "commander": "^14.0.0",
+    "openclaw": "2026.5.7",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
