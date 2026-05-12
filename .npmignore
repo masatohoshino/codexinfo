@@ -1,6 +1,5 @@
-node_modules/
-coverage/
-*.log
-src/
-tsconfig.json
+src/**/*.test.ts
 vitest.config.ts
+tsconfig.json
+node_modules/
+*.tgz

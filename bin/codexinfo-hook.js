@@ -23,7 +23,7 @@ const DEBUG = process.env["CODEXINFO_DEBUG"] === "1";
 function dbg(...args) { if (DEBUG) process.stderr.write("[codexinfo-hook] " + args.join(" ") + "\n"); }
 function sha256(s) { return createHash("sha256").update(String(s)).digest("hex"); }
 
-const CONFIG_PATH = join(homedir(), ".openclaw", "codexinfo", "hook-config.json");
+const CONFIG_PATH = process.env["CODEXINFO_HOOK_CONFIG_PATH"] || join(homedir(), ".openclaw", "codexinfo", "hook-config.json");
 
 function resolveDedupeDir() {
   const xdg = process.env["XDG_CACHE_HOME"];
