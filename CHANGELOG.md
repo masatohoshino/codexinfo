@@ -2,6 +2,29 @@
 
 All notable changes to CodexInfo are documented here.
 
+## [0.1.11] — 2026-05-13
+
+Docs-only patch release. No runtime behavior changes.
+
+### Documentation
+
+- **ClawHub first-time install command** — Clarifies that the correct install command is:
+
+  ```sh
+  openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install
+  ```
+
+  CodexInfo is a community OpenClaw code-plugin that shells out to the local Codex CLI for version checks (`codex --version`) and rate-limit probing (localhost only, no external network). OpenClaw's plugin installer requires explicit acknowledgement via `--dangerously-force-unsafe-install` for any code-plugin that uses `child_process`. The ClawHub scan is clean and the source code is public at [masatohoshino/codexinfo](https://github.com/masatohoshino/codexinfo).
+
+  The `--force` flag is only needed when reinstalling over an existing install; omit it for a first-time install:
+
+  ```sh
+  # Reinstall / overwrite existing install
+  openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install --force
+  ```
+
+  This patch exists because ClawHub package versions are immutable: v0.1.10 was published before the install documentation was corrected, and the listing could not be updated in place.
+
 ## [0.1.10] — 2026-05-13
 
 ### Documentation

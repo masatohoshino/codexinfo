@@ -102,9 +102,9 @@ If you previously installed CodexInfo (v0.1.0–v0.1.2), re-running `setup` will
 ### 2. Configure delivery targets in the gateway
 
 ```sh
-openclaw gateway config set 'plugins.entries.codexinfo.token' 'YOUR_TOKEN'
+openclaw gateway config set 'plugins.entries.codexinfo.token' '<token from codexinfo setup>'
 openclaw gateway config set 'plugins.entries.codexinfo.deliveries' \
-  '[{"channel":"telegram","to":"YOUR_CHAT_ID"}]'
+  '[{"channel":"telegram","to":"<telegram-chat-id>"}]'
 openclaw gateway restart
 ```
 
@@ -150,11 +150,11 @@ If you have received a pre-release `.tgz` file directly:
 
 ```sh
 # Install the CLI globally
-npm install -g ./codexinfo-0.1.10.tgz
+npm install -g ./codexinfo-0.1.11.tgz
 codexinfo setup
 
 # Also register the OpenClaw plugin from the same tarball
-openclaw plugins install --dangerously-force-unsafe-install ./codexinfo-0.1.10.tgz
+openclaw plugins install --dangerously-force-unsafe-install ./codexinfo-0.1.11.tgz
 openclaw gateway restart
 ```
 
@@ -412,7 +412,7 @@ The `--dangerously-force-unsafe-install` flag is required because OpenClaw's cod
 Or with a specific version:
 
 ```sh
-openclaw plugins install clawhub:codexinfo@0.1.10 --dangerously-force-unsafe-install
+openclaw plugins install clawhub:codexinfo@0.1.11 --dangerously-force-unsafe-install
 ```
 
 To reinstall or overwrite an existing install, add `--force`:
