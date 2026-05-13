@@ -246,4 +246,55 @@ describe("renderNotificationText", () => {
     expect(text).toContain("█");
     expect(text).not.toContain(RATE_LIMIT_UNAVAILABLE_LINE);
   });
+
+  // completionDetail rendering
+  it("completion with detail and no usage — title, detail, unavailable", () => {
+    const ev = makeEvent("completion", {
+      completionDetail: "All 15 tests pass.",
+    });
+    const text = renderNotificationText(ev, BASE_CONFIG);
+    const lines = text.split("\n");
+    expect(lines).toHaveLength(3);
+    expect(lines[0]).toBe("✅ Codex complete");
+    expect(lines[1]).toBe("All 15 tests pass.");
+    expect(lines[2]).toBe(RATE_LIMIT_UNAVAILABLE_LINE);
+  });
+
+  it("completion with detail and usage — title, detail, then bars", () => {
+    const ev = makeEvent("completion", {
+      completionDetail: "Refactored auth middleware.",
+      usage: {
+        displayMode: "left",
+        buckets: [
+          { windowLabel: "5h", usedPercent: 30, resetsAt: null },
+          { windowLabel: "W", usedPercent: 15, resetsAt: null },
+        ],
+      },
+    });
+    const lines = renderNotificationText(ev, BASE_CONFIG).split("\n");
+    expect(lines).toHaveLength(4); // title + detail + 2 bar lines
+    expect(lines[0]).toBe("✅ Codex complete");
+    expect(lines[1]).toBe("Refactored auth middleware.");
+    expect(lines[2]).toContain("█"); // bar line
+    expect(lines[3]).toContain("█"); // bar line
+    expect(lines).not.toContain(RATE_LIMIT_UNAVAILABLE_LINE);
+  });
+
+  it("completion without detail preserves existing 2-line format (title + unavailable)", () => {
+    const ev = makeEvent("completion");
+    const text = renderNotificationText(ev, BASE_CONFIG);
+    expect(text).toBe(`✅ Codex complete\n${RATE_LIMIT_UNAVAILABLE_LINE}`);
+  });
+
+  it("approval-wait is not affected by completionDetail-like field", () => {
+    // completionDetail on an approval-wait event must not appear in output
+    const ev = makeEvent("approval-wait", {
+      approval: { descriptionLine: "File edit requires approval." },
+      completionDetail: "should-not-appear",
+    });
+    const text = renderNotificationText(ev, BASE_CONFIG);
+    expect(text).not.toContain("should-not-appear");
+    expect(text).toContain("⏸️ Codex waiting for approval");
+    expect(text).toContain("File edit requires approval.");
+  });
 });

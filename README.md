@@ -10,16 +10,32 @@ CodexInfo hooks into the Codex CLI and sends notifications through your configur
 
 | Event | When | What you receive |
 |---|---|---|
-| **Completion** | Every Codex turn ends (`notify` path) | Rate-limit bars showing remaining capacity (5h and weekly windows) |
-| **Approval wait** | Codex requests a tool call (automatic for VS Code; opt-in via `--approval-wait` for CLI) | Description of what Codex wants to do |
+| **Completion** | Every Codex turn ends (`notify` path) | Rate-limit bars (5h and weekly windows), plus an optional one-line detail when Codex provides a final result message |
+| **Approval wait** | Codex requests a tool call (automatic for VS Code; opt-in via `--approval-wait` for CLI) | Description of what Codex wants to do, plus rate-limit bars |
 | **Rate-limit reached** | Any window hits 100% | Alert with affected window label and remaining bars |
 
-Example completion notification:
+Example completion notification (with detail):
+
+```
+✅ Codex complete
+All 12 tests pass.
+5h ███████░░░ 73% left 01:24
+W  ██████░░░░ 58% left 17 May
+```
+
+Example completion notification (no detail — when Codex does not produce a final result message):
 
 ```
 ✅ Codex complete
 5h ███████░░░ 73% left 01:24
 W  ██████░░░░ 58% left 17 May
+```
+
+Example fallback when rate-limit data is unavailable:
+
+```
+✅ Codex complete
+rate-limit: unavailable
 ```
 
 Example approval-wait notification:
@@ -164,7 +180,7 @@ To change routing after setup, re-run `openclaw codexinfo setup` (idempotent —
 
 ## Journal
 
-The journal records every outbound event as a JSONL file in `~/.openclaw/codexinfo/journal/`. This is useful for debugging delivery failures.
+The journal records every outbound event as a JSONL file in `~/.openclaw/codexinfo-journal/`. This is useful for debugging delivery failures.
 
 **Journal is enabled by default.**
 
@@ -257,6 +273,7 @@ Expected notification before approving: `⏸️ Codex waiting for approval` / `N
 ## Privacy and security
 
 - **No conversation content is transmitted.** Payloads contain: session ID, turn ID, project path (directory name only), elapsed time, tool name/description (from Codex), rate-limit window labels and percentages.
+- **Completion detail lines are sanitized.** When a completion notification includes a one-line summary from Codex's final result message, the line is sanitized before delivery: code fences are replaced with `[…]`, whitespace is collapsed, known secret patterns (JWT, `sk-*`, GitHub/GitLab/npm/Slack tokens, AWS access keys, Google API keys, Telegram bot tokens, `Bearer` values) are redacted, and the result is capped at 160 characters.
 - **Bearer token authentication.** The hook communicates with your local OpenClaw gateway over `http://localhost:3000` (or the URL you configure). The token is never logged or displayed after setup.
 - **User-level hooks.** `~/.codex/config.toml` hooks load without repo trust — they apply to all Codex sessions regardless of project.
 - **Async, non-blocking.** The hook sends a fire-and-forget HTTP POST and exits 0 immediately. It never delays or blocks Codex.
@@ -357,7 +374,7 @@ The notification is still delivered. To see rate-limit bars, ensure Codex is run
 1. Run `openclaw codexinfo doctor` — check all items are green
 2. Check that the gateway is running: `openclaw gateway status`
 3. Verify the token matches: compare `hook-config.json` token with gateway plugin config token
-4. Check the journal: `~/.openclaw/codexinfo/journal/` — entries indicate the hook fired
+4. Check the journal: `~/.openclaw/codexinfo-journal/` — entries indicate the hook fired
 
 ### Double notifications
 
@@ -369,6 +386,7 @@ The VS Code Codex extension may invoke the `notify` runner more than once per lo
 - **PermissionRequest**: 2-minute TTL keyed by `turn_id + tool_use_id` (or `turn_id + tool_name + input`). A different `tool_use_id` within the same turn is **not** deduplicated — each distinct approval prompt is delivered.
 - **Rollout-reclassified approval-wait (VS Code)**: 2-minute TTL keyed by `cwd`. When VS Code fires notify at `function_call` time and CodexInfo reclassifies it to approval-wait, a cwd-scoped flag prevents duplicate approval-wait notifications. The subsequent task-complete fire is NOT suppressed (different key), so the completion notification still arrives.
 - **PermissionRequest + rollout-reclassification (VS Code, `--approval-wait` mode)**: When both `[[hooks.PermissionRequest]]` (structured hook) and the Path D rollout-reclassification detect the same VS Code approval request, both would otherwise generate a notification — one with the specific reason from the hook payload, one with a generic "Codex requires approval." message. The PermissionRequest path claims a shared `codexinfo:v1:approval-cwd-window:<sha256(cwd)>` flag (30-second TTL) after deciding to send. The Path D path checks this flag before firing and exits silently if claimed. Result: exactly 1 approval-wait notification with the specific PermissionRequest description. (v0.1.10)
+- **Post-approval false approval-wait suppressed (VS Code)**: After a user approves a tool call, VS Code fires another `notify` event while the rollout still shows `function_call` before `function_call_output` is written. The PermissionRequest path pre-claims the rollout `raKey` flag (2-minute TTL, force-touch) so Path D is suppressed even after the 30-second cwd-window expires. Result: no spurious approval-wait notification after approval. (v0.1.10)
 
 If you still see duplicates, check that only one CodexInfo `notify` line is present in `~/.codex/config.toml`, then run `openclaw codexinfo doctor`.
 

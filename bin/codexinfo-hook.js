@@ -268,6 +268,7 @@ async function classifyRolloutApprovalWait(rolloutPath) {
         if (type === "event_msg" && pt === "task_complete") hasTaskComplete = true;
         if (type === "response_item" && pt === "function_call") {
           hasPendingFunctionCall = true;
+          hasTaskComplete = false; // new function_call supersedes any previous turn's task_complete
           pendingToolName = typeof obj?.payload?.name === "string" ? obj.payload.name : undefined;
         }
         if (type === "response_item" && pt === "function_call_output") {
@@ -276,12 +277,13 @@ async function classifyRolloutApprovalWait(rolloutPath) {
         }
       } catch { /* incomplete JSON at tail boundary — skip */ }
     }
-    if (hasTaskComplete) return { result: "completion" };
-    if (hasPendingFunctionCall) return { result: "approval-wait", toolName: pendingToolName };
+    if (hasTaskComplete) return { result: "completion", confirmed: true };
+    if (hasPendingFunctionCall) return { result: "approval-wait", toolName: pendingToolName, confirmed: true };
   } catch { /* any error → fallback */ } finally {
     await fh?.close().catch(() => {});
   }
-  return { result: "completion" };
+  // Neither signal seen — possible timing race (Codex may still be writing).
+  return { result: "completion", confirmed: false };
 }
 
 async function probeRateLimits() {
@@ -474,7 +476,17 @@ async function main() {
   if (eventType === "completion" && _client) {
     const rolloutPath = await findRolloutForCwd(_cwd, Date.now());
     if (rolloutPath) {
-      const { result: rolloutClass, toolName } = await classifyRolloutApprovalWait(rolloutPath);
+      let classify = await classifyRolloutApprovalWait(rolloutPath);
+      // Timing race — two scenarios require a retry:
+      // 1. (Phase 27) confirmed=false: VS Code fires before function_call is written to JSONL.
+      // 2. (Phase 29) approval-wait: function_call written but function_call_output not yet written
+      //    (post-approval race). After 400ms the fco appears and reclassifies to completion.
+      if (!classify.confirmed || classify.result === "approval-wait") {
+        await new Promise((r) => setTimeout(r, 400));
+        classify = await classifyRolloutApprovalWait(rolloutPath);
+        dbg("rollout=retry result=" + classify.result + " confirmed=" + classify.confirmed);
+      }
+      const { result: rolloutClass, toolName } = classify;
       dbg("rollout=" + rolloutClass + " file=" + rolloutPath.split("/").slice(-1)[0]);
       if (rolloutClass === "approval-wait") {
         eventType = "approval-wait";
@@ -519,14 +531,26 @@ async function main() {
       }
       // Claim the cwd-window so Path D rollout-reclassification won't double-fire.
       await isPermDuplicate(buildApprovalCwdWindowKey(_cwd), APPROVAL_CWD_WINDOW_TTL_MS);
-      dbg("dedupe=send event=approval-wait key=" + key.slice(0, 16));
+      // Pre-claim raKey (force-touch, 2-min TTL) so Path D suppresses post-approval false
+      // approval-wait even if cwdWinKey expires before the user approves.
+      const _preRaKey = sha256(`codexinfo:v1:rollout-approval:${sha256(_cwd)}`);
+      await mkdir(DEDUPE_DIR, { recursive: true });
+      await writeFile(join(DEDUPE_DIR, `${_preRaKey}.flag`), "1", { flag: "w" }).catch(() => {});
+      dbg("dedupe=send event=approval-wait key=" + key.slice(0, 16) + " pre-raKey=" + _preRaKey.slice(0, 16));
     }
   }
 
   const usage = await probeRateLimits();
 
   if (eventType === "completion") {
-    await postToGateway(cfg, "agent-turn-complete", usage ? { usage } : {});
+    const rawLastMsg = payload["last_assistant_message"] ?? payload["last-assistant-message"];
+    const completionExtra = {
+      ...(usage ? { usage } : {}),
+      ...(typeof rawLastMsg === "string" && rawLastMsg.length > 0
+        ? { last_assistant_message: rawLastMsg }
+        : {}),
+    };
+    await postToGateway(cfg, "agent-turn-complete", completionExtra);
     if (usage?.buckets?.some((b) => b.usedPercent >= 100)) {
       await postToGateway(cfg, "rate-limit-reached", { usage });
     }

@@ -105,6 +105,10 @@ export function renderNotificationText(
   const title = TITLE[event.eventType];
   const lines: string[] = [`${icon} ${title}`];
 
+  if (event.eventType === "completion" && event.completionDetail) {
+    lines.push(event.completionDetail);
+  }
+
   if (event.eventType === "approval-wait" && event.approval) {
     lines.push(event.approval.descriptionLine);
   }

@@ -21,6 +21,8 @@ export interface CodexInfoEvent {
   receivedAt: string;
   approval?: ApprovalInfo;
   usage?: UsageSnapshot;
+  /** One-line completion detail derived from last_assistant_message. Completion only. */
+  completionDetail?: string;
 }
 
 export interface DeliveryEntry {

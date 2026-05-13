@@ -8,9 +8,22 @@ All notable changes to CodexInfo are documented here.
 
 - **`CODEXINFO_HOOK_CONFIG_PATH` env var** — Overrides the default hook-config path (`~/.openclaw/codexinfo/hook-config.json`). Setting this to an empty string is treated as unset. Useful for testing with an isolated gateway without modifying the production config.
 
+- **Optional completion detail line** — When Codex provides a final assistant/result message (`last_assistant_message` / `last-assistant-message` in the hook payload), the `✅ Codex complete` notification now includes a one-line summary derived from that message. The line is sanitized before display: code fences are replaced with `[…]`, whitespace is collapsed to a single space, known secret patterns (JWT, `sk-*`, GitHub/GitLab/npm/Slack tokens, AWS access keys, Google API keys, Telegram bot tokens, `Bearer` values) are redacted with placeholders, and the result is capped at 160 characters. When no meaningful detail is available (e.g., minimal one-liner tasks), the notification falls back to the standard format without a detail line.
+
+  ```
+  ✅ Codex complete
+  All 12 tests pass.
+  5h ██████████ 91% left 04:07
+  W  ██████████ 95% left 19 May
+  ```
+
 ### Fixed
 
 - **VS Code approval-wait double notification** — When VS Code fires both the `[[hooks.PermissionRequest]]` structured hook and a Path D rollout-reclassification `notify` event for the same approval, both previously passed through separate dedupe namespaces (`perm:…` and `codexinfo:v1:rollout-approval:…`) and produced two Telegram messages (one with a specific reason, one with the generic "Codex requires approval."). The PermissionRequest path now writes a shared `codexinfo:v1:approval-cwd-window:<sha256(cwd)>` flag (30-second TTL) after deciding to send. Path D checks this flag before firing; if the PermissionRequest hook already claimed the slot within 30 seconds, Path D exits silently. Result: 1 approval event → 1 notification (specific reason wins).
+
+- **VS Code false `✅ Codex complete` before `⏸️ Codex waiting for approval`** — VS Code fires the `notify` hook at `function_call` time, before Codex writes the `function_call` entry to the session rollout JSONL. The hook read an empty or pre-signal rollout, classified the event as `completion`, and sent a false completion notification ~1 s before the correct approval-wait. The rollout classifier now returns a `confirmed: boolean` field; when neither `task_complete` nor `function_call` is found, the result is `confirmed: false`. The hook retries once after 400 ms, giving the JSONL time to catch up. The classifier is also order-aware: a new `function_call` entry resets any `task_complete` seen in a prior turn, so multi-turn sessions are classified correctly.
+
+- **VS Code post-approval false `⏸️ Codex waiting for approval`** — After a user approves a tool call, VS Code fires another `notify` event while the rollout still shows `function_call` without `function_call_output` (the approved tool has not yet produced output). This caused a spurious approval-wait notification after approval. Two fixes: (1) the retry condition now triggers on `approval-wait` results as well as unconfirmed completions, so the hook waits 400 ms for `function_call_output` to appear; (2) the `[[hooks.PermissionRequest]]` path pre-claims the rollout `raKey` flag with force-touch (2-minute TTL) so Path D is suppressed even after the 30-second cwd-window expires.
 
 - **`doctor` rate-limit probe label** — The check label was "rate-limit probe succeeded" which displayed confusingly as `❌ rate-limit probe succeeded` when the probe failed (e.g. no Codex session running). Renamed to "rate-limit probe reachable" which reads correctly in both the passing (`✅`) and failing (`❌`) states.
 

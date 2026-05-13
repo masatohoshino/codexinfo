@@ -11,6 +11,11 @@
 export interface RolloutClassification {
   result: "approval-wait" | "completion";
   toolName?: string;
+  /**
+   * true  = result is backed by an explicit signal (task_complete or function_call)
+   * false = neither signal seen; VS Code timing-race possible (Codex may still be writing)
+   */
+  confirmed: boolean;
 }
 
 /**
@@ -48,6 +53,7 @@ export function classifyRolloutTail(tailText: string): RolloutClassification {
     }
     if (type === "response_item" && pt === "function_call") {
       hasPendingFunctionCall = true;
+      hasTaskComplete = false; // new function_call supersedes any previous turn's task_complete
       pendingToolName = typeof payload?.name === "string" ? payload.name : undefined;
     }
     if (type === "response_item" && pt === "function_call_output") {
@@ -56,11 +62,12 @@ export function classifyRolloutTail(tailText: string): RolloutClassification {
     }
   }
 
-  if (hasTaskComplete) return { result: "completion" };
+  if (hasTaskComplete) return { result: "completion", confirmed: true };
   if (hasPendingFunctionCall) {
     return pendingToolName !== undefined
-      ? { result: "approval-wait", toolName: pendingToolName }
-      : { result: "approval-wait" };
+      ? { result: "approval-wait", toolName: pendingToolName, confirmed: true }
+      : { result: "approval-wait", confirmed: true };
   }
-  return { result: "completion" };
+  // Neither task_complete nor function_call seen — possible timing race (Codex still writing).
+  return { result: "completion", confirmed: false };
 }

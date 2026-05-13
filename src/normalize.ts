@@ -5,6 +5,46 @@ function sanitize(s: string): string {
   return s.replace(/[\r\n]+/g, " ").trim().slice(0, 120);
 }
 
+const SECRET_PATTERNS: [RegExp, string][] = [
+  // JWT (eyJ header)
+  [/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, "[token]"],
+  // sk- style API keys (OpenAI, Anthropic)
+  [/\bsk-[A-Za-z0-9_-]{16,}/g, "[api-key]"],
+  // GitHub tokens (ghp_, gho_, ghu_, ghs_, ghr_, github_pat_)
+  [/\bgh[pousr]_[A-Za-z0-9]{36,}/g, "[api-key]"],
+  [/\bgithub_pat_[A-Za-z0-9_]{30,}/g, "[api-key]"],
+  // Telegram bot tokens: 5-12 digits, colon, 30+ alphanum chars
+  [/\b\d{5,12}:[A-Za-z0-9_-]{30,}/g, "[bot-token]"],
+  // Bearer/bearer/BEARER token values (case-insensitive scheme)
+  [/\bbearer\s+[A-Za-z0-9+/=_.-]{16,}/gi, "Bearer [token]"],
+  // Slack bot/user/app tokens (xoxb-, xoxp-, xoxa-, xoxs-)
+  [/\bxox[bpas]-[A-Za-z0-9_-]{10,}/g, "[api-key]"],
+  // AWS access key IDs
+  [/\bAKIA[A-Z0-9]{16}\b/g, "[api-key]"],
+  // Google API keys (AIza prefix)
+  [/\bAIza[A-Za-z0-9_-]{35}\b/g, "[api-key]"],
+  // GitLab personal access tokens
+  [/\bglpat-[A-Za-z0-9_-]{20,}/g, "[api-key]"],
+  // npm automation/publish tokens
+  [/\bnpm_[A-Za-z0-9]{35,}/g, "[api-key]"],
+];
+
+const COMPLETION_DETAIL_MAX = 160;
+
+export function sanitizeCompletionDetail(raw: string): string | null {
+  // Replace markdown code fences (possibly multiline) before collapsing whitespace
+  let s = raw.replace(/```[\s\S]*?```/g, "[…]");
+  // Collapse all whitespace (newlines, tabs, runs of spaces) to a single space
+  s = s.replace(/\s+/g, " ").trim();
+  // Redact known secret patterns
+  for (const [pattern, replacement] of SECRET_PATTERNS) {
+    s = s.replace(pattern, replacement);
+  }
+  // Cap at COMPLETION_DETAIL_MAX with an ellipsis
+  if (s.length > COMPLETION_DETAIL_MAX) s = s.slice(0, COMPLETION_DETAIL_MAX - 1) + "…";
+  return s.length > 0 ? s : null;
+}
+
 function resolveApprovalDescription(body: Record<string, unknown>): string {
   // Priority 1: tool_input.description (structured hook payload field)
   const toolInput = body["tool_input"];
@@ -104,6 +144,14 @@ export function normalizeHookPayload(
 
   if (eventType === "approval-wait") {
     result.approval = { descriptionLine: resolveApprovalDescription(b) };
+  }
+
+  if (eventType === "completion") {
+    const rawDetail = b["last_assistant_message"] ?? b["last-assistant-message"];
+    if (typeof rawDetail === "string") {
+      const detail = sanitizeCompletionDetail(rawDetail);
+      if (detail) result.completionDetail = detail;
+    }
   }
 
   return result;
