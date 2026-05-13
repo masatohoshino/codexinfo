@@ -2,6 +2,18 @@
 
 All notable changes to CodexInfo are documented here.
 
+## [0.1.13] — 2026-05-14
+
+Docs/metadata-only patch. No runtime behavior changes.
+
+### Documentation
+
+- **Corrected rate-limit probe description** — Previous versions incorrectly described the rate-limit probe as an "HTTP GET to the Codex app-server at `127.0.0.1`". The actual implementation starts a short-lived local `codex app-server` process and reads rate-limit data via stdin/stdout JSON-RPC. No network connection is made. This correction appears in the Quick start section, Rate-limit display section, Privacy and security section, Troubleshooting section (Doctor probe failed, rate-limit unavailable), and ClawHub install section.
+
+- **Clarified `--dangerously-force-unsafe-install` explanation** — Wording now accurately describes the two `child_process` operations: `codex --version` (version detection at setup/doctor time) and starting the local `codex app-server` process via stdin/stdout JSON-RPC for rate-limit data. Explicitly states that notification content is delivered to the user's configured OpenClaw channels (e.g. Telegram, Slack) and never forwarded to CodexInfo's author.
+
+- **Updated version refs** — Tarball and versioned ClawHub install examples updated to v0.1.13.
+
 ## [0.1.12] — 2026-05-13
 
 Docs and metadata patch. No runtime behavior changes.
@@ -13,7 +25,7 @@ Docs and metadata patch. No runtime behavior changes.
 - **Explained `scan: suspicious` for first-time installers** — Added a clear explanation in the README Quick start section and ClawHub install section:
   - The ClawHub listing page's Install section shows a simplified command without `--dangerously-force-unsafe-install`. That command will be blocked by OpenClaw's dangerous-code scanner. Always use the full command.
   - `scan: suspicious` is the expected scanner state for code-plugins that shell out (`child_process`). It does not mean malware or a security problem.
-  - CodexInfo uses `child_process` for exactly two localhost-only operations: `codex --version` (Codex CLI version detection) and an HTTP GET to the Codex app-server at `127.0.0.1:<port>` (rate-limit data). No external network requests. No outbound data beyond your own gateway notifications.
+  - CodexInfo uses `child_process` for exactly two local operations: `codex --version` (Codex CLI version detection) and starting the local `codex app-server` process to read rate-limit data via stdin/stdout JSON-RPC (no network connection). No external network requests. No outbound data beyond your own gateway notifications.
 
 - **Updated version refs** — Tarball and versioned ClawHub install examples updated to v0.1.12.
 

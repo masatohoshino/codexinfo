@@ -83,7 +83,7 @@ openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install
 openclaw codexinfo setup
 ```
 
-**Why `--dangerously-force-unsafe-install`?** CodexInfo uses `child_process` for two localhost-only operations: (1) `codex --version` to detect the installed Codex CLI version, and (2) an HTTP probe to the Codex app-server at `127.0.0.1` to read rate-limit data. No external network requests are made. Notification content is processed by your own gateway and never sent back to CodexInfo. OpenClaw's code scanner flags any community plugin that uses `child_process` as `scan: suspicious` — this is the expected state for CodexInfo, not an indication of malicious behavior (`blocked: no`). The flag is OpenClaw's standard acknowledgement for this scanner finding. The source code is public at [masatohoshino/codexinfo](https://github.com/masatohoshino/codexinfo).
+**Why `--dangerously-force-unsafe-install`?** CodexInfo uses `child_process` for two local operations: (1) `codex --version` to detect the installed Codex CLI version at setup/doctor time, and (2) starting the local `codex app-server` process to read rate-limit data via stdin/stdout JSON-RPC (no network connection). No external network requests are made by these `child_process` operations. Notification content is delivered to your configured OpenClaw channels (e.g. Telegram, Slack) and never forwarded to CodexInfo's author. OpenClaw's code scanner flags any community plugin that uses `child_process` — this is the expected state for CodexInfo and is not an indication of malicious behavior (`blocked: no`). The flag is OpenClaw's standard acknowledgement for this scanner finding. The source code is public at [masatohoshino/codexinfo](https://github.com/masatohoshino/codexinfo).
 
 If you are upgrading an existing CodexInfo install, add `--force` to overwrite:
 ```sh
@@ -152,15 +152,15 @@ If you have received a pre-release `.tgz` file directly:
 
 ```sh
 # Install the CLI globally
-npm install -g ./codexinfo-0.1.12.tgz
+npm install -g ./codexinfo-0.1.13.tgz
 codexinfo setup
 
 # Also register the OpenClaw plugin from the same tarball
-openclaw plugins install --dangerously-force-unsafe-install ./codexinfo-0.1.12.tgz
+openclaw plugins install --dangerously-force-unsafe-install ./codexinfo-0.1.13.tgz
 openclaw gateway restart
 ```
 
-Replace `0.1.12` with the version in your filename. This install path is for pre-ClawHub testing only; use `openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install` once the package is published.
+Replace `0.1.13` with the version in your filename. This install path is for pre-ClawHub testing only; use `openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install` once the package is published.
 
 ---
 
@@ -209,7 +209,7 @@ Journal failures are independent of delivery failures — a journal write error 
 
 ## Rate-limit display
 
-When a Codex turn completes, CodexInfo probes the Codex app-server's internal rate-limit API (local HTTP — no external network call) and attaches remaining-capacity bars to the completion notification.
+When a Codex turn completes, CodexInfo starts the local `codex app-server` process and reads rate-limit data via stdin/stdout JSON-RPC, then attaches remaining-capacity bars to the completion notification. No network connection is used for this probe.
 
 Two windows are typically shown:
 
@@ -286,7 +286,7 @@ Expected notification before approving: `⏸️ Codex waiting for approval` / `N
 - **Bearer token authentication.** The hook communicates with your local OpenClaw gateway over `http://localhost:3000` (or the URL you configure). The token is never logged or displayed after setup.
 - **User-level hooks.** `~/.codex/config.toml` hooks load without repo trust — they apply to all Codex sessions regardless of project.
 - **Async, non-blocking.** The hook sends a fire-and-forget HTTP POST and exits 0 immediately. It never delays or blocks Codex.
-- **Rate-limit probe is local.** The probe calls the Codex app-server on localhost — no external network requests.
+- **Rate-limit probe is local.** The probe starts the local `codex app-server` process and communicates via stdin/stdout JSON-RPC. No network connection is made.
 
 ---
 
@@ -367,13 +367,13 @@ If you see this, a `[[hooks.PermissionRequest]]` hook is installed (from `--appr
 
 ### Doctor shows "rate-limit probe failed"
 
-The Codex app-server is not reachable. Ensure Codex is running and you are logged in. The probe contacts `localhost` only — no external network required. Notifications will still be delivered but will show `rate-limit: unavailable` instead of bars.
+The rate-limit probe starts a short-lived `codex app-server` process and reads data via stdin/stdout. This fails if `codex` is not in PATH, Codex is not logged in, or the process cannot start. No network connection is needed for the probe. Notifications will still be delivered but will show `rate-limit: unavailable` instead of bars.
 
 ### Notification shows `rate-limit: unavailable`
 
 `rate-limit: unavailable` appears in completion and approval-wait notifications when the Codex app-server probe fails. Common causes:
 - Codex is not currently running (no active session when the hook fires)
-- Running Codex over SSH or inside Docker where the app-server is not accessible on localhost
+- Running Codex over SSH or inside Docker where `codex` is not in PATH or the process cannot start
 - The probe timed out
 
 The notification is still delivered. To see rate-limit bars, ensure Codex is running locally with a valid session. You can confirm probe reachability with `openclaw codexinfo doctor`.
@@ -409,12 +409,12 @@ CodexInfo is available on ClawHub:
 openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install
 ```
 
-The `--dangerously-force-unsafe-install` flag is required because OpenClaw's code scanner detects `child_process` usage and flags the package as `scan: suspicious` — the expected result for any community code-plugin that shells out to local commands. The plugin is **not blocked** (`blocked: no`). CodexInfo calls `child_process` only for: `codex --version` (version check at setup/doctor) and an HTTP GET to the Codex app-server at `127.0.0.1` (rate-limit probing). No external network requests. Source code is public at [masatohoshino/codexinfo](https://github.com/masatohoshino/codexinfo). Notification content is processed by your own gateway and never forwarded to CodexInfo.
+The `--dangerously-force-unsafe-install` flag is required because OpenClaw's code scanner detects `child_process` usage and flags the package — the expected result for any community code-plugin that launches local processes. The plugin is **not blocked** (`blocked: no`). CodexInfo uses `child_process` only for: `codex --version` (version check at setup/doctor time) and starting the local `codex app-server` process to read rate-limit data via stdin/stdout JSON-RPC (no network connection). Notification content is delivered to your configured OpenClaw channels (e.g. Telegram, Slack) and never forwarded to CodexInfo's author. Source code is public at [masatohoshino/codexinfo](https://github.com/masatohoshino/codexinfo).
 
 Or with a specific version:
 
 ```sh
-openclaw plugins install clawhub:codexinfo@0.1.12 --dangerously-force-unsafe-install
+openclaw plugins install clawhub:codexinfo@0.1.13 --dangerously-force-unsafe-install
 ```
 
 To reinstall or overwrite an existing install, add `--force`:
