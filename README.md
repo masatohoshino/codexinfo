@@ -77,8 +77,15 @@ At least one OpenClaw channel (Telegram, Slack, etc.) must be configured in your
 ### 1. Install via ClawHub (recommended)
 
 ```sh
-openclaw plugins install codexinfo
+openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install
 openclaw codexinfo setup
+```
+
+**Why `--dangerously-force-unsafe-install`?** OpenClaw's plugin installer blocks code-plugins that call local shell commands until you explicitly acknowledge them. CodexInfo shells out to the local Codex CLI for version checks (`codex --version`) and rate-limit probing — both are localhost-only, no network calls. The [ClawHub scan is clean](https://github.com/masatohoshino/codexinfo) and the source code is public. The flag is OpenClaw's standard acknowledgement for community code-plugins that use `child_process`.
+
+If you are upgrading an existing CodexInfo install, add `--force` to overwrite:
+```sh
+openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install --force
 ```
 
 The `setup` command is interactive. It will:
@@ -151,7 +158,7 @@ openclaw plugins install --dangerously-force-unsafe-install ./codexinfo-0.1.10.t
 openclaw gateway restart
 ```
 
-Replace `0.1.10` with the version in your filename. This install path is for pre-ClawHub testing only; use `openclaw plugins install codexinfo` once the package is published.
+Replace `0.1.10` with the version in your filename. This install path is for pre-ClawHub testing only; use `openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install` once the package is published.
 
 ---
 
@@ -397,13 +404,21 @@ If you still see duplicates, check that only one CodexInfo `notify` line is pres
 CodexInfo is available on ClawHub:
 
 ```sh
-openclaw plugins install codexinfo
+openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install
 ```
+
+The `--dangerously-force-unsafe-install` flag is required because OpenClaw's code scanner detects `child_process` usage. CodexInfo uses it to call `codex --version` and probe the local Codex rate-limit server — both are localhost-only calls. The ClawHub scan is clean and the source code is public.
 
 Or with a specific version:
 
 ```sh
-openclaw plugins install codexinfo@0.1.0
+openclaw plugins install clawhub:codexinfo@0.1.10 --dangerously-force-unsafe-install
+```
+
+To reinstall or overwrite an existing install, add `--force`:
+
+```sh
+openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install --force
 ```
 
 After install, run `openclaw codexinfo setup` to configure.

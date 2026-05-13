@@ -4,6 +4,14 @@ All notable changes to CodexInfo are documented here.
 
 ## [0.1.10] — 2026-05-13
 
+### Documentation
+
+- **ClawHub install command** — The correct install command is:
+  ```sh
+  openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install
+  ```
+  OpenClaw's code scanner requires the `--dangerously-force-unsafe-install` flag for code-plugins that call local shell commands. CodexInfo uses `child_process` to run `codex --version` (version check) and probe the local Codex rate-limit server (localhost only, no external network). The ClawHub scan for this package is clean. The `--force` flag is only needed when reinstalling over an existing install; omit it for a first-time install.
+
 ### Added
 
 - **`CODEXINFO_HOOK_CONFIG_PATH` env var** — Overrides the default hook-config path (`~/.openclaw/codexinfo/hook-config.json`). Setting this to an empty string is treated as unset. Useful for testing with an isolated gateway without modifying the production config.
