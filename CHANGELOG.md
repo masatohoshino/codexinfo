@@ -2,6 +2,25 @@
 
 All notable changes to CodexInfo are documented here.
 
+## [0.1.12] — 2026-05-13
+
+Docs and metadata patch. No runtime behavior changes.
+
+### Documentation
+
+- **Corrected scanner status wording** — Removed the incorrect "ClawHub scan is clean" claim from README and CHANGELOG. OpenClaw's code scanner correctly reports `scan: suspicious` for any community code-plugin that uses `child_process`. This is the expected result for CodexInfo — it is **not** an indication of malicious behavior. The plugin is `blocked: no` and fully installable. The `--dangerously-force-unsafe-install` flag is OpenClaw's standard acknowledgement mechanism for this scanner finding.
+
+- **Explained `scan: suspicious` for first-time installers** — Added a clear explanation in the README Quick start section and ClawHub install section:
+  - The ClawHub listing page's Install section shows a simplified command without `--dangerously-force-unsafe-install`. That command will be blocked by OpenClaw's dangerous-code scanner. Always use the full command.
+  - `scan: suspicious` is the expected scanner state for code-plugins that shell out (`child_process`). It does not mean malware or a security problem.
+  - CodexInfo uses `child_process` for exactly two localhost-only operations: `codex --version` (Codex CLI version detection) and an HTTP GET to the Codex app-server at `127.0.0.1:<port>` (rate-limit data). No external network requests. No outbound data beyond your own gateway notifications.
+
+- **Updated version refs** — Tarball and versioned ClawHub install examples updated to v0.1.12.
+
+### Metadata
+
+- **ClawScan context note added** — Published with `--clawscan-note` explaining the two `child_process` operations so ClawScan has context for its analysis.
+
 ## [0.1.11] — 2026-05-13
 
 Docs-only patch release. No runtime behavior changes.
@@ -14,7 +33,7 @@ Docs-only patch release. No runtime behavior changes.
   openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install
   ```
 
-  CodexInfo is a community OpenClaw code-plugin that shells out to the local Codex CLI for version checks (`codex --version`) and rate-limit probing (localhost only, no external network). OpenClaw's plugin installer requires explicit acknowledgement via `--dangerously-force-unsafe-install` for any code-plugin that uses `child_process`. The ClawHub scan is clean and the source code is public at [masatohoshino/codexinfo](https://github.com/masatohoshino/codexinfo).
+  CodexInfo is a community OpenClaw code-plugin that shells out to the local Codex CLI for version checks (`codex --version`) and rate-limit probing (localhost only, no external network). OpenClaw's plugin installer requires explicit acknowledgement via `--dangerously-force-unsafe-install` for any code-plugin that uses `child_process`. The source code is public at [masatohoshino/codexinfo](https://github.com/masatohoshino/codexinfo). (Note: the scanner reports `scan: suspicious` for `child_process` usage — this is expected and does not indicate malicious behavior; `blocked: no`.)
 
   The `--force` flag is only needed when reinstalling over an existing install; omit it for a first-time install:
 
@@ -33,7 +52,7 @@ Docs-only patch release. No runtime behavior changes.
   ```sh
   openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install
   ```
-  OpenClaw's code scanner requires the `--dangerously-force-unsafe-install` flag for code-plugins that call local shell commands. CodexInfo uses `child_process` to run `codex --version` (version check) and probe the local Codex rate-limit server (localhost only, no external network). The ClawHub scan for this package is clean. The `--force` flag is only needed when reinstalling over an existing install; omit it for a first-time install.
+  OpenClaw's code scanner requires the `--dangerously-force-unsafe-install` flag for code-plugins that call local shell commands. CodexInfo uses `child_process` to run `codex --version` (version check) and probe the local Codex rate-limit server (localhost only, no external network). The source code is public. (`scan: suspicious` is expected for `child_process` usage; `blocked: no`.) The `--force` flag is only needed when reinstalling over an existing install; omit it for a first-time install.
 
 ### Added
 

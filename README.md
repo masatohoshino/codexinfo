@@ -76,12 +76,14 @@ At least one OpenClaw channel (Telegram, Slack, etc.) must be configured in your
 
 ### 1. Install via ClawHub (recommended)
 
+> **Note:** The Install button on the ClawHub listing page shows `openclaw plugins install clawhub:codexinfo` without flags. That command will be blocked by OpenClaw's dangerous-code scanner. Always use the full command below.
+
 ```sh
 openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install
 openclaw codexinfo setup
 ```
 
-**Why `--dangerously-force-unsafe-install`?** OpenClaw's plugin installer blocks code-plugins that call local shell commands until you explicitly acknowledge them. CodexInfo shells out to the local Codex CLI for version checks (`codex --version`) and rate-limit probing — both are localhost-only, no network calls. The [ClawHub scan is clean](https://github.com/masatohoshino/codexinfo) and the source code is public. The flag is OpenClaw's standard acknowledgement for community code-plugins that use `child_process`.
+**Why `--dangerously-force-unsafe-install`?** CodexInfo uses `child_process` for two localhost-only operations: (1) `codex --version` to detect the installed Codex CLI version, and (2) an HTTP probe to the Codex app-server at `127.0.0.1` to read rate-limit data. No external network requests are made. Notification content is processed by your own gateway and never sent back to CodexInfo. OpenClaw's code scanner flags any community plugin that uses `child_process` as `scan: suspicious` — this is the expected state for CodexInfo, not an indication of malicious behavior (`blocked: no`). The flag is OpenClaw's standard acknowledgement for this scanner finding. The source code is public at [masatohoshino/codexinfo](https://github.com/masatohoshino/codexinfo).
 
 If you are upgrading an existing CodexInfo install, add `--force` to overwrite:
 ```sh
@@ -150,15 +152,15 @@ If you have received a pre-release `.tgz` file directly:
 
 ```sh
 # Install the CLI globally
-npm install -g ./codexinfo-0.1.11.tgz
+npm install -g ./codexinfo-0.1.12.tgz
 codexinfo setup
 
 # Also register the OpenClaw plugin from the same tarball
-openclaw plugins install --dangerously-force-unsafe-install ./codexinfo-0.1.11.tgz
+openclaw plugins install --dangerously-force-unsafe-install ./codexinfo-0.1.12.tgz
 openclaw gateway restart
 ```
 
-Replace `0.1.10` with the version in your filename. This install path is for pre-ClawHub testing only; use `openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install` once the package is published.
+Replace `0.1.12` with the version in your filename. This install path is for pre-ClawHub testing only; use `openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install` once the package is published.
 
 ---
 
@@ -407,12 +409,12 @@ CodexInfo is available on ClawHub:
 openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install
 ```
 
-The `--dangerously-force-unsafe-install` flag is required because OpenClaw's code scanner detects `child_process` usage. CodexInfo uses it to call `codex --version` and probe the local Codex rate-limit server — both are localhost-only calls. The ClawHub scan is clean and the source code is public.
+The `--dangerously-force-unsafe-install` flag is required because OpenClaw's code scanner detects `child_process` usage and flags the package as `scan: suspicious` — the expected result for any community code-plugin that shells out to local commands. The plugin is **not blocked** (`blocked: no`). CodexInfo calls `child_process` only for: `codex --version` (version check at setup/doctor) and an HTTP GET to the Codex app-server at `127.0.0.1` (rate-limit probing). No external network requests. Source code is public at [masatohoshino/codexinfo](https://github.com/masatohoshino/codexinfo). Notification content is processed by your own gateway and never forwarded to CodexInfo.
 
 Or with a specific version:
 
 ```sh
-openclaw plugins install clawhub:codexinfo@0.1.11 --dangerously-force-unsafe-install
+openclaw plugins install clawhub:codexinfo@0.1.12 --dangerously-force-unsafe-install
 ```
 
 To reinstall or overwrite an existing install, add `--force`:
