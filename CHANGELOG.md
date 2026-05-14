@@ -4,7 +4,7 @@ All notable changes to CodexInfo are documented here.
 
 ## [0.1.14] — 2026-05-14
 
-Metadata-only patch. No runtime or documentation changes.
+Metadata/docs-only patch. No runtime behavior changes.
 
 ### Metadata
 
