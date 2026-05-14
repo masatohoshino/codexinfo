@@ -2,6 +2,14 @@
 
 All notable changes to CodexInfo are documented here.
 
+## [0.1.14] — 2026-05-14
+
+Metadata-only patch. No runtime or documentation changes.
+
+### Metadata
+
+- **Corrects ClawHub source commit reference** — v0.1.13 was published to ClawHub with an incorrect full commit SHA (`3a1bae5d…` does not exist on GitHub). The correct commit is `3a1bae51d65cc86c4a96f1563a295d70fe473cf3`. This release re-publishes the same content with the correct source commit so the ClawHub source link resolves correctly.
+
 ## [0.1.13] — 2026-05-14
 
 Docs/metadata-only patch. No runtime behavior changes.

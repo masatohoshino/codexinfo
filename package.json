@@ -1,6 +1,6 @@
 {
   "name": "codexinfo",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "type": "module",
   "description": "Codex CLI notifications for OpenClaw \u2014 completion, approval-wait, and rate-limit with mandatory rate-limit context.",
   "license": "MIT",

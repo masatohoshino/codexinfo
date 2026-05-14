@@ -152,15 +152,15 @@ If you have received a pre-release `.tgz` file directly:
 
 ```sh
 # Install the CLI globally
-npm install -g ./codexinfo-0.1.13.tgz
+npm install -g ./codexinfo-0.1.14.tgz
 codexinfo setup
 
 # Also register the OpenClaw plugin from the same tarball
-openclaw plugins install --dangerously-force-unsafe-install ./codexinfo-0.1.13.tgz
+openclaw plugins install --dangerously-force-unsafe-install ./codexinfo-0.1.14.tgz
 openclaw gateway restart
 ```
 
-Replace `0.1.13` with the version in your filename. This install path is for pre-ClawHub testing only; use `openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install` once the package is published.
+Replace `0.1.14` with the version in your filename. This install path is for pre-ClawHub testing only; use `openclaw plugins install clawhub:codexinfo --dangerously-force-unsafe-install` once the package is published.
 
 ---
 
@@ -414,7 +414,7 @@ The `--dangerously-force-unsafe-install` flag is required because OpenClaw's cod
 Or with a specific version:
 
 ```sh
-openclaw plugins install clawhub:codexinfo@0.1.13 --dangerously-force-unsafe-install
+openclaw plugins install clawhub:codexinfo@0.1.14 --dangerously-force-unsafe-install
 ```
 
 To reinstall or overwrite an existing install, add `--force`:
